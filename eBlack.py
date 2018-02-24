@@ -12,4 +12,4 @@ def abrirArch_eBlack(name):
 	except:
 		print("No existe un archivo eBlack con ese nombre, asegurese de que tenga extension .eb")
 
-abrirArch_eBlack("nuevo.eb")
+abrirArch_eBlack("prueba.eb")
