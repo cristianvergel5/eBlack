@@ -1,3 +1,9 @@
+#import win32com.client as clwin
+
+#def SapiLee(lectura):
+	#habla = clwin.Dispatch("SAPI.SpVoice")
+	#habla.Speak(lectura)
+
 def leer_eBlack(name):
 
 	if name.find(".eb") == False:
@@ -50,6 +56,7 @@ class lexer_eBlack():
 
 		simbolo = simbolo.lower()
 		simbolo = simbolo.rstrip("\n")
+		parecido = ""
 		tipo = ""
 
 		try:
@@ -59,19 +66,28 @@ class lexer_eBlack():
 				for linea in diccionario:
 
 					linea = linea.rstrip("\n")
-					if linea == "PALABRA RESERVADA" or linea == "OPERADOR":
+
+					#print(simbolo.find(linea))
+
+					if simbolo.find(linea) == 0:
+						parecido = linea
+						#print("La linea es " + linea + " y parecido es: " + parecido)
+
+					if linea.isupper():
 						tipo = linea
 
 					else:
 						if linea == simbolo:
 							tipo = tipo.rstrip("\n")
 							simbolo = simbolo.rstrip("\n")
-							return "["+tipo+", "+simbolo+"]"	
+							return True, "["+tipo+", "+simbolo+"]"	
 
-			return False
+			print(simbolo)
+			return False, parecido
 
 		except:
 			print("Ha ocurrido un error, puede que sea el archivo diccionario de eBlack, revisar")
+
 
 	def leerPrograma(self):
 
@@ -90,20 +106,26 @@ class lexer_eBlack():
 
 						for i in lista:
 
-							valor = self.obtenerToken(i)
+							valor, resultado = self.obtenerToken(i)
 
 							if valor == False:
-								print("Error en la linea ", contador)
+								self.tokens = "Error en la linea " + str(contador) + " quiso decir "+ str(resultado)
 								#return activar el return para salir del programa cuando encuentre un error
 							else:
-								print(valor, " <-> Linea: ", contador)
+								self.tokens = str(resultado) + " Linea: " + str(contador)
 
 						contador = contador + 1
 
 			except:
 				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
 
-eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.txt")
+#SapiLee("Inicio de lexer eBlack")
+eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.eb")
 eBlack.leerPrograma()
+Resultado = eBlack.tokens
+for i in Resultado:
+	print(i)
+#	SapiLee(i)
 
+#SapiLee("Fin de lexer eBlack")
 #abrirArch_eBlack("Dictionary_eBlack.eb")
