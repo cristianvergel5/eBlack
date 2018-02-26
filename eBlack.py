@@ -14,7 +14,7 @@ def leer_eBlack(name):
 	
 class lexer_eBlack():
 
-	def __init__(self, dictionary, filename, tokens):
+	def __init__(self, dictionary, filename):
 		self.__dictionary = dictionary
 		self.__filename = filename
 		self.__tokens = []
@@ -48,25 +48,27 @@ class lexer_eBlack():
 
 	def obtenerToken(self, simbolo):
 
-		simbolo = simbolo.lower() + "\n"
+		simbolo = simbolo.lower()
+		simbolo = simbolo.rstrip("\n")
 		tipo = ""
 
 		try:
 
 			with open(self.__dictionary, "r") as diccionario:
 				
-				print("Prueba Dictionary_eBlack.eb: ", self.__dictionary)
-
 				for linea in diccionario:
 
-					if str(linea) == "PALABRA RESERVADA\n" or str(linea) == "OPERADOR\n":
+					linea = linea.rstrip("\n")
+					if linea == "PALABRA RESERVADA" or linea == "OPERADOR":
 						tipo = linea
 
 					else:
 						if linea == simbolo:
 							tipo = tipo.rstrip("\n")
 							simbolo = simbolo.rstrip("\n")
-							return "["+tipo+", "+simbolo+"]"		
+							return "["+tipo+", "+simbolo+"]"	
+
+			return False
 
 		except:
 			print("Ha ocurrido un error, puede que sea el archivo diccionario de eBlack, revisar")
@@ -75,20 +77,33 @@ class lexer_eBlack():
 
 		if self.__filename != None:
 
-			print(self.__filename)
-			print(self.obtenerToken("si"))
-			#try:
+			contador = 1
+			lista = []
 
-			#	with open(self.__filename, "r") as archivo:
+			try:
 
-			#		for linea in archivo:
-			#			print(linea)
-			#			print(obtenerToken(linea))
+				with open(self.__filename, "r") as archivo:
 
-			#except:
-			#	print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
+					for linea in archivo:
+						
+						lista = linea.split(" ")
 
-eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.eb", None)
+						for i in lista:
+
+							valor = self.obtenerToken(i)
+
+							if valor == False:
+								print("Error en la linea ", contador)
+								#return activar el return para salir del programa cuando encuentre un error
+							else:
+								print(valor, " <-> Linea: ", contador)
+
+						contador = contador + 1
+
+			except:
+				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
+
+eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.txt")
 eBlack.leerPrograma()
 
 #abrirArch_eBlack("Dictionary_eBlack.eb")

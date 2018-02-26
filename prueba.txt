@@ -1,0 +1,2 @@
+si entonces miq ~ a
+sino
