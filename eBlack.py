@@ -50,6 +50,7 @@ class lexer_eBlack():
 
 	@tokens.setter
 	def tokens(self, token):
+		if token not in self.__tokens:
 		self.__tokens.append(token)
 
 	def obtenerToken(self, simbolo):
