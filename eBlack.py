@@ -33,6 +33,7 @@ class lexer_eBlack():
 	def dictionary(self, dictionary):
 		self.__dictionary = dictionary
 
+	@dictionary.deleter
 	def dictionary(self):
 		self.__dictionary = None
 
@@ -44,6 +45,10 @@ class lexer_eBlack():
 	def filename(self, filename):
 		self.__filename = filename
 
+	@filename.deleter
+	def filename(self):
+		self.__filename = None
+
 	@property
 	def tokens(self):
 		return self.__tokens
@@ -51,6 +56,10 @@ class lexer_eBlack():
 	@tokens.setter
 	def tokens(self, token):
 		self.__tokens.append(token)
+
+	@tokens.deleter
+	def tokens(self):
+		self.__tokens = None
 
 	def obtenerToken(self, simbolo):
 
@@ -82,7 +91,6 @@ class lexer_eBlack():
 							simbolo = simbolo.rstrip("\n")
 							return True, "["+tipo+", "+simbolo+"]"	
 
-			print(simbolo)
 			return False, parecido
 
 		except:
@@ -109,10 +117,10 @@ class lexer_eBlack():
 							valor, resultado = self.obtenerToken(i)
 
 							if valor == False:
-								self.tokens = "Error en la linea " + str(contador) + " quiso decir "+ str(resultado)
+								self.tokens = "Error en la linea " + str(contador) + ". usuario, acaso quiso decir... "+ str(resultado) + "?"
 								#return activar el return para salir del programa cuando encuentre un error
 							else:
-								self.tokens = str(resultado) + " Linea: " + str(contador)
+								self.tokens = str(resultado) + ". Linea: " + str(contador)
 
 						contador = contador + 1
 
