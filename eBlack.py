@@ -26,15 +26,6 @@ def identificarID(identificar):
 
 	return False
 
-def identificarNUM(identificar):
-	
-	patron = re.compile(r'\d+')
-
-	if patron.search(identificar) != None:
-		return True
-
-	return False
-
 def identificarComentario(identificar):
 
 	patron = re.compile(r'\|.*')
@@ -100,7 +91,9 @@ class lexer_eBlack():
 				return "["+"PALABRA RESERVADA, "+simbolo+"]"
 			elif simbolo in operadores.values():
 				return "["+"OPERADOR, "+simbolo+"]"
-			
+			elif identificarID(simbolo) != False:
+				return identificarID(simbolo)
+
 			return None
 
 		except:
@@ -124,32 +117,36 @@ class lexer_eBlack():
 
 						for i in lista:
 
-							valor = self.obtenerToken(i)
+							if identificarComentario(i) != True:
 
-							if valor == None:
-								self.tokens = "Error en la linea " + str(contador)
-								#return activar el return para salir del programa cuando encuentre un error
+								valor = self.obtenerToken(i)
+
+								if valor == None:
+									self.tokens = "Error en la linea " + str(contador)
+									#return activar el return para salir del programa cuando encuentre un error
+								else:
+									self.tokens = str(valor) + ". Linea: " + str(contador)
 							else:
-								self.tokens = str(valor) + ". Linea: " + str(contador)
+								break;
 
 						contador = contador + 1
 
 			except:
 				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
 
-"""
+
 SapiLee("Inicio de lexer eBlack")
 eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.eb")
 eBlack.leerPrograma()
 Resultado = eBlack.tokens
+
 for i in Resultado:
 	print(i)
 	SapiLee(i)
 
-print(identificarID("si"))
 SapiLee("Fin de lexer eBlack")
 #abrirArch_eBlack("Dictionary_eBlack.eb")
-"""
+
 
 def separarExpresion(linea, lista, n):
 
