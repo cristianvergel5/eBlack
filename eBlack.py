@@ -1,22 +1,48 @@
 import win32com.client as clwin
+import re
+
+operadores = {'SUMA':'+', 'RESTA':'-', 'MULTIPLICACION':'*', 'DIVISION': '/', 'ASIGNACION': '~', 'MENOR QUE': '<',
+'MAYOR QUE':'>', 'IGUAL':'~~', 'MENOR IGUAL':'<~', 'MAYOR IGUAL':'>~', 'DIFERENTE':'|~'}
+
+tokens = ['ID', 'NUMERO', 'SUMA', 'RESTA', 'MULTIPLICACION', 'DIVISION', 'PARENTESISI', 'PARENTESISD']
+
+puntuacion = {'PUNTO':'.', 'COMA':',', 'PUNTO Y COMA':';', 'DOS PUNTOS': ':', 'PUNTOS SUSPENSIVOS':'...',
+'PARENTESIS IZQUIERDO':'(', 'PARENTESIS DERECHO':')', 'CORCHETE IZQUIERDO':'[', 'CORCHETE DERECHO':']', 'BARRA':'',
+'LLAVE IZQUIERDA':'{', 'LLAVE DERECHA':'}'}
+
+reservadas = ['itr', 'miq', 'si', 'sino', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos']
 
 def SapiLee(lectura):
 	habla = clwin.Dispatch("SAPI.SpVoice")
 	habla.Speak(lectura)
 
-def leer_eBlack(name):
+def identificarID(identificar):
+	patron = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*')
 
-	if name.find(".eb") == False:
-		name = name + ".eb"
+	identificar = identificar.lower()
+	
+	if identificar not in operadores.values() and identificar not in reservadas and patron.search(identificar) != None:
+		return "[ID, "+identificar+"]"
 
-	try:
+	return False
 
-		with open(name, "r") as archivo:
-			for line in archivo:
-				print(line)
+def identificarNUM(identificar):
+	
+	patron = re.compile(r'\d+')
 
-	except:
-		print("No existe un archivo eBlack con ese nombre, asegurese de que tenga extension .eb")
+	if patron.search(identificar) != None:
+		return True
+
+	return False
+
+def identificarComentario(identificar):
+
+	patron = re.compile(r'\|.*')
+
+	if patron.search(identificar) != None:
+		return True
+
+	return False
 	
 class lexer_eBlack():
 
@@ -70,31 +96,15 @@ class lexer_eBlack():
 
 		try:
 
-			with open(self.__dictionary, "r") as diccionario:
-				
-				for linea in diccionario:
-
-					linea = linea.rstrip("\n")
-
-					#print(simbolo.find(linea))
-
-					if simbolo.find(linea) == 0:
-						parecido = linea
-						#print("La linea es " + linea + " y parecido es: " + parecido)
-
-					if linea == "PALABRA RESERVADA" or linea == "OPERADOR":
-						tipo = linea
-
-					else:
-						if linea == simbolo:
-							tipo = tipo.rstrip("\n")
-							simbolo = simbolo.rstrip("\n")
-							return True, "["+tipo+", "+simbolo+"]"	
-
-			return False, parecido
+			if simbolo in reservadas:
+				return "["+"PALABRA RESERVADA, "+simbolo+"]"
+			elif simbolo in operadores.values():
+				return "["+"OPERADOR, "+simbolo+"]"
+			
+			return None
 
 		except:
-			print("Ha ocurrido un error, puede que sea el archivo diccionario de eBlack, revisar")
+			print("Ha ocurrido un error")
 
 
 	def leerPrograma(self):
@@ -114,19 +124,20 @@ class lexer_eBlack():
 
 						for i in lista:
 
-							valor, resultado = self.obtenerToken(i)
+							valor = self.obtenerToken(i)
 
-							if valor == False:
-								self.tokens = "Error en la linea " + str(contador) + ". usuario, acaso quiso decir... "+ str(resultado) + "?"
+							if valor == None:
+								self.tokens = "Error en la linea " + str(contador)
 								#return activar el return para salir del programa cuando encuentre un error
 							else:
-								self.tokens = str(resultado) + ". Linea: " + str(contador)
+								self.tokens = str(valor) + ". Linea: " + str(contador)
 
 						contador = contador + 1
 
 			except:
 				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
 
+"""
 SapiLee("Inicio de lexer eBlack")
 eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.eb")
 eBlack.leerPrograma()
@@ -135,5 +146,33 @@ for i in Resultado:
 	print(i)
 	SapiLee(i)
 
+print(identificarID("si"))
 SapiLee("Fin de lexer eBlack")
 #abrirArch_eBlack("Dictionary_eBlack.eb")
+"""
+
+def separarExpresion(linea, lista, n):
+
+	#print("INICIO: ", linea)
+
+	#print("LISTA SUCESION N->", n)
+	for i in lista:
+		print(i)
+	
+	if "=" not in linea:
+		lista.append(linea)
+
+	elif "=" in linea:
+		
+		palabra = linea[n:linea.index("=")]
+		n = linea.index("=")
+		#print("EXTRAIDA: ", palabra, " N ->", n)
+		lista.append(palabra)
+
+		if "=" not in lista:
+			lista.append("=")
+
+		#print("SIGUIENTE SUCESION: ", linea[linea.index("=")+1:], "\n\n")
+		separarExpresion(linea[linea.index("=")+1:], lista, 0)
+	
+	return lista
