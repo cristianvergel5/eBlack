@@ -1,22 +1,47 @@
-#import win32com.client as clwin
+##import win32com.client as clwin
+import re
+import sys
+import time
 
-#def SapiLee(lectura):
-	#habla = clwin.Dispatch("SAPI.SpVoice")
-	#habla.Speak(lectura)
+operadores = {'SUMA':'+', 'RESTA':'-', 'MULTIPLICACION':'*', 'DIVISION': '/', 'ASIGNACION': '~', 'MENOR QUE': '<',
+'MAYOR QUE':'>', 'IGUAL':'~~', 'MENOR IGUAL':'<~', 'MAYOR IGUAL':'>~', 'DIFERENTE':'|~'}
 
-def leer_eBlack(name):
+tokens = ['ID', 'NUMERO', 'SUMA', 'RESTA', 'MULTIPLICACION', 'DIVISION', 'PARENTESISI', 'PARENTESISD']
 
-	if name.find(".eb") == False:
-		name = name + ".eb"
+puntuacion = {'PUNTO':'.', 'COMA':',', 'PUNTO Y COMA':';', 'DOS PUNTOS': ':', 'PUNTOS SUSPENSIVOS':'...',
+'PARENTESIS IZQUIERDO':'(', 'PARENTESIS DERECHO':')', 'CORCHETE IZQUIERDO':'[', 'CORCHETE DERECHO':']', 'BARRA':'',
+'LLAVE IZQUIERDA':'{', 'LLAVE DERECHA':'}'}
 
-	try:
+reservadas = ['itr', 'miq', 'si', 'sino', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos']
+"""
+def SapiLee(lectura):
+	habla = clwin.Dispatch("SAPI.SpVoice")
+	habla.Speak(lectura)
+"""
+def _print(string):
+    sys.stdout.write(string)
+    sys.stdout.flush()
 
-		with open(name, "r") as archivo:
-			for line in archivo:
-				print(line)
 
-	except:
-		print("No existe un archivo eBlack con ese nombre, asegurese de que tenga extension .eb")
+
+def identificarID(identificar):
+	patron = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*')
+
+	identificar = identificar.lower()
+	
+	if identificar not in operadores.values() and identificar not in reservadas and patron.search(identificar) != None:
+		return "[ID, "+identificar+"]"
+
+	return False
+
+def identificarComentario(identificar):
+
+	patron = re.compile(r'\|.*')
+
+	if patron.search(identificar) != None:
+		return True
+
+	return False
 	
 class lexer_eBlack():
 
@@ -33,6 +58,7 @@ class lexer_eBlack():
 	def dictionary(self, dictionary):
 		self.__dictionary = dictionary
 
+	@dictionary.deleter
 	def dictionary(self):
 		self.__dictionary = None
 
@@ -44,14 +70,21 @@ class lexer_eBlack():
 	def filename(self, filename):
 		self.__filename = filename
 
+	@filename.deleter
+	def filename(self):
+		self.__filename = None
+
 	@property
 	def tokens(self):
 		return self.__tokens
 
 	@tokens.setter
 	def tokens(self, token):
-		if token not in self.__tokens:
 		self.__tokens.append(token)
+
+	@tokens.deleter
+	def tokens(self):
+		self.__tokens = None
 
 	def obtenerToken(self, simbolo):
 
@@ -62,35 +95,21 @@ class lexer_eBlack():
 
 		try:
 
-			with open(self.__dictionary, "r") as diccionario:
-				
-				for linea in diccionario:
+			if simbolo in reservadas:
+				return "["+"PALABRA RESERVADA, "+simbolo+"]"
+			elif simbolo in operadores.values():
+				return "["+"OPERADOR, "+simbolo+"]"
+			elif identificarID(simbolo) != False:
+				return identificarID(simbolo)
 
-					linea = linea.rstrip("\n")
-
-					#print(simbolo.find(linea))
-
-					if simbolo.find(linea) == 0:
-						parecido = linea
-						#print("La linea es " + linea + " y parecido es: " + parecido)
-
-					if linea.isupper():
-						tipo = linea
-
-					else:
-						if linea == simbolo:
-							tipo = tipo.rstrip("\n")
-							simbolo = simbolo.rstrip("\n")
-							return True, "["+tipo+", "+simbolo+"]"	
-
-			print(simbolo)
-			return False, parecido
+			return None
 
 		except:
-			print("Ha ocurrido un error, puede que sea el archivo diccionario de eBlack, revisar")
+			print("Ha ocurrido un error")
 
 
 	def leerPrograma(self):
+		
 
 		if self.__filename != None:
 
@@ -107,26 +126,69 @@ class lexer_eBlack():
 
 						for i in lista:
 
-							valor, resultado = self.obtenerToken(i)
+							if identificarComentario(i) != True:
 
-							if valor == False:
-								self.tokens = "Error en la linea " + str(contador) + " quiso decir "+ str(resultado)
-								#return activar el return para salir del programa cuando encuentre un error
+								valor = self.obtenerToken(i)
+
+								if valor == None:
+									self.tokens = "Error en la linea " + str(contador)
+									#return activar el return para salir del programa cuando encuentre un error
+								else:
+									self.tokens = str(valor) + ". Linea: " + str(contador)
 							else:
-								self.tokens = str(resultado) + " Linea: " + str(contador)
+								break;
 
 						contador = contador + 1
 
 			except:
 				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
 
+
 #SapiLee("Inicio de lexer eBlack")
 eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.eb")
 eBlack.leerPrograma()
 Resultado = eBlack.tokens
+
 for i in Resultado:
 	print(i)
-#	SapiLee(i)
+	#SapiLee(i)
 
 #SapiLee("Fin de lexer eBlack")
 #abrirArch_eBlack("Dictionary_eBlack.eb")
+
+
+def separarExpresion(linea, lista, n):
+
+	#print("INICIO: ", linea)
+
+	#print("LISTA SUCESION N->", n)
+	for i in lista:
+		print(i)
+	
+	if "=" not in linea:
+		lista.append(linea)
+
+	elif "=" in linea:
+		
+		palabra = linea[n:linea.index("=")]
+		n = linea.index("=")
+		#print("EXTRAIDA: ", palabra, " N ->", n)
+		lista.append(palabra)
+
+		if "=" not in lista:
+			lista.append("=")
+
+		#print("SIGUIENTE SUCESION: ", linea[linea.index("=")+1:], "\n\n")
+		separarExpresion(linea[linea.index("=")+1:], lista, 0)
+	
+	return lista
+
+
+lista2 = eBlack.tokens
+n=9619
+for myChar in lista2:
+	myChar=chr(n)
+	_print(myChar)
+	time.sleep(1)
+
+	
