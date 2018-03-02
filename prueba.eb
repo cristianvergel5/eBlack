@@ -1,4 +1,9 @@
-si entonces | miq ~ a
-~~ .
-sino sinop
-+ clase
+si ( 5 > &a ) entonces {
+	
+	escribe ( "Cadena de caracteres" )
+	&leer ~ "salida" 
+
+}
+sino {
+	&variable ~ funcion nuevaFuncion ( &a , &b )
+}
