@@ -1,8 +1,6 @@
-si ( 5 > &a ) entonces {
-	
+si(5>&a) entonces {
 	escribe ( "Cadena de caracteres" )
 	&leer ~ "salida" 
-
 }
 sino {
 	&variable ~ funcion nuevaFuncion ( &a , &b )

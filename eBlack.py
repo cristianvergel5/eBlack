@@ -2,8 +2,9 @@ import win32com.client as clwin
 import re
 
 operadores = {'SUMA':'+', 'RESTA':'-', 'MULTIPLICACION':'*', 'DIVISION': '/', 'ASIGNACION': '~', 'MENOR QUE': '<',
-'MAYOR QUE':'>', 'IGUAL':'~~', 'MENOR IGUAL':'<~', 'MAYOR IGUAL':'>~', 'DIFERENTE':'|~', 'MODULO':'%',
-'LLAVE IZQUIERDA':'{', 'LLAVE DERECHA':'}', 'COMA':',', 'PARENTESIS IZQUIERDO':'(', 'PARENTESIS DERECHO':')'}
+'MAYOR QUE':'>', 'IGUAL':'~~', 'MENOR IGUAL':'<~', 'MAYOR IGUAL':'>~', 'DIFERENTE':'|~', 'MODULO':'%'}
+
+operadoresBloque = {'LLAVE IZQUIERDA':'{', 'LLAVE DERECHA':'}', 'COMA':',', 'PARENTESIS IZQUIERDO':'(', 'PARENTESIS DERECHO':')'}
 
 tokens = ['ID', 'NUMERO', 'SUMA', 'RESTA', 'MULTIPLICACION', 'DIVISION', 'PARENTESISI', 'PARENTESISD']
 
@@ -16,8 +17,55 @@ def SapiLee(lectura):
 	habla = clwin.Dispatch("SAPI.SpVoice")
 	habla.Speak(lectura)
 
-def identificarReservada(identificar):
+def identificarReservada(identificar, reservada):
 	
+	patron = re.compile("["+reservada+"]+\(.*\)")
+	patron2 = re.compile("["+reservada+"]+\(.*")
+
+	inicio = identificar.find("(") + 1
+	fin = identificar.find(")")
+	#print(inicio, " ", fin)
+
+	acumula = ""
+
+	if inicio != -1 and fin != -1 and inicio != fin:
+
+		for i in range(inicio, fin):
+			acumula = acumula + identificar[i]
+
+		acumula = acumula.replace("", " ")
+		acumula = acumula.replace("& ", "&")
+		acumula = acumula.replace("< ~", "<~")
+		acumula = acumula.replace("~ ~", "~~")
+		acumula = acumula.replace("> ~", ">~")
+		acumula = acumula.replace("| ~", "|~")
+
+		#print("ACUMULA RESULTADO 1: ", acumula)
+
+	elif inicio != -1 and fin == -1:
+
+		for i in range(inicio, len(identificar)):
+			acumula = acumula+identificar[i]
+		
+		acumula = acumula.replace("", " ")
+		acumula = acumula.replace("& ", "&")
+		acumula = acumula.replace("< ~", "<~")
+		acumula = acumula.replace("~ ~", "~~")
+		acumula = acumula.replace("> ~", ">~")
+		acumula = acumula.replace("| ~", "|~")
+
+		#print("ACUMULA RESULTADO 2: ", acumula)
+
+	if acumula == "":
+		acumula = None
+
+	if patron.search(identificar) != None:
+
+		return True, acumula
+	elif patron2.search(identificar) != None:
+		return True, acumula
+
+	return False, acumula
 
 def identificarID(identificar):
 	patron = re.compile(r'[&][a-zA-Z_][a-zA-Z0-9_]*')
@@ -89,7 +137,7 @@ class lexer_eBlack():
 	def tokens(self):
 		self.__tokens = None
 
-	def obtenerToken(self, simbolo):
+	def obtenerToken(self, simbolo, contador):
 
 		simbolo = simbolo.lower()
 		simbolo = simbolo.rstrip("\n")
@@ -99,11 +147,25 @@ class lexer_eBlack():
 		tipo = ""
 
 		try:
+			"""
+			for i in reservadas:
+				valor, evaluar = identificarReservada(simbolo, i)
 
+				if valor == True:
+					condicionEvaluar = obtenerToken(simbolo, contador)
+
+					if condicionEvaluar == None:
+						return None
+					else:
+						self.tokens = str(condicionEvaluar) + ". Linea: " + str(contador)
+						return evaluar
+			"""
 			if simbolo in reservadas:
 				return "["+"PALABRA RESERVADA, "+simbolo+" ]"
 			elif simbolo in operadores.values():
 				return "["+"OPERADOR, "+simbolo+" ]"
+			elif simbolo in operadoresBloque.values():
+				return "["+"PUNTUADOR, "+simbolo+" ]"
 			elif identificarID(simbolo) != False:
 				return identificarID(simbolo)
 			elif identificarNumero(simbolo) != False:
@@ -134,7 +196,7 @@ class lexer_eBlack():
 
 							if identificarComentario(i) != True:
 
-								valor = self.obtenerToken(i)
+								valor = self.obtenerToken(i, contador)
 
 								if valor == None:
 									self.tokens = "Error en la linea " + str(contador)
@@ -149,7 +211,13 @@ class lexer_eBlack():
 			except:
 				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
 
-print(identificarString("Cadena de caracteres"))
+#uno, dos = identificarReservada("itr(", "itr")
+#print(uno)
+#print(dos)
+
+print(operadores.values())
+print(identificarReservada("si(&b-&a~~10)", "si"))
+"""
 
 SapiLee("Inicio de lexer eBlack")
 eBlack = lexer_eBlack("prueba.eb")
@@ -189,3 +257,4 @@ def separarExpresion(linea, lista, n):
 		separarExpresion(linea[linea.index("=")+1:], lista, 0)
 	
 	return lista
+"""
