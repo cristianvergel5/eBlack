@@ -10,7 +10,7 @@ tokens = ['ID', 'NUMERO', 'SUMA', 'RESTA', 'MULTIPLICACION', 'DIVISION', 'PARENT
 
 puntuacion = {'PUNTO':'.', 'COMA':',', 'PUNTO Y COMA':';', 'DOS PUNTOS': ':', 'PUNTOS SUSPENSIVOS':'...', 'CORCHETE IZQUIERDO':'[', 'CORCHETE DERECHO':']'}
 
-reservadas = ['itr', 'miq', 'si', 'sino', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos', 'escriba',
+reservadas = ['itr', 'miq', 'si', 'sino', 'sinosi', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos', 'escriba',
 'funcion']
 
 def SapiLee(lectura):
@@ -90,7 +90,7 @@ def identificarString(identificar):
 	patron = re.compile(r'\".*\"')
 
 	if patron.search(identificar) != None:
-		return True
+		return "[STRING, "+identificar+" ]"
 
 	return False
 
@@ -142,24 +142,10 @@ class lexer_eBlack():
 		simbolo = simbolo.lower()
 		simbolo = simbolo.rstrip("\n")
 		simbolo = simbolo.rstrip("\t")
-		simbolo = simbolo.replace(" ", "")
-		parecido = ""
-		tipo = ""
+		simbolo = simbolo.replace("\n", "")
 
 		try:
-			"""
-			for i in reservadas:
-				valor, evaluar = identificarReservada(simbolo, i)
 
-				if valor == True:
-					condicionEvaluar = obtenerToken(simbolo, contador)
-
-					if condicionEvaluar == None:
-						return None
-					else:
-						self.tokens = str(condicionEvaluar) + ". Linea: " + str(contador)
-						return evaluar
-			"""
 			if simbolo in reservadas:
 				return "["+"PALABRA RESERVADA, "+simbolo+" ]"
 			elif simbolo in operadores.values():
@@ -170,12 +156,47 @@ class lexer_eBlack():
 				return identificarID(simbolo)
 			elif identificarNumero(simbolo) != False:
 				return identificarNumero(simbolo)
+			elif identificarString(simbolo) != False:
+				return identificarString(simbolo)
 
 			return None
 
 		except:
 			print("Ha ocurrido un error")
 
+
+	def buscarCadena(self, lista):
+
+			contador = 0
+			inicio = -1
+			fin = -1
+			cadena = ""
+
+			for i in lista:
+				if i.find('"') != -1 or i.find("'") != -1:
+
+					if inicio == -1:
+						inicio = contador
+					else:
+						fin = contador
+
+				contador = contador + 1
+
+			if inicio != -1 and fin != -1:
+
+				for i in range(inicio, fin+1):
+					cadena = cadena + lista[i]
+				
+				contador = fin - inicio + 1
+
+				for i in range(1,contador+1):
+					
+					lista.pop(inicio)
+					
+			if cadena == "":
+				return None, lista
+
+			return "[STRING, "+cadena+"]", lista
 
 	def leerPrograma(self):
 
@@ -189,24 +210,87 @@ class lexer_eBlack():
 				with open(self.__filename, "r") as archivo:
 
 					for linea in archivo:
-						
+												
 						lista = linea.split(" ")
-						
+						#print(lista)
+						cadena, lista = self.buscarCadena(lista)
+
+						#print(cadena, lista)
+
 						for i in lista:
 
-							if identificarComentario(i) != True:
+							if i.find("(") != -1 and i.find("(") != 0:
+
+								inicio = i.find("(")
+								fin = i.find(")") +1
+
+								acumulado = ""
+								for x in range(inicio, fin):
+									acumulado = acumulado + i[x]
+
+								acumulado = acumulado.replace("", " ")
+								acumulado = acumulado.replace("& ", "&")
+
+								primer = i[0: inicio]
+
+								if primer != " ":
+									valor = self.obtenerToken(primer, contador)
+
+									if valor == None:
+										self.tokens = "Error en la linea " + str(contador) +" ERROR: "+ primer
+										#return activar el return para salir del programa cuando encuentre un error
+									else:
+
+										self.tokens = str(valor) + ". Linea: " + str(contador)
+
+								lista2 = acumulado.split(" ")
+								
+								for l in lista2:
+									if l != '':
+										valor = self.obtenerToken(l, contador)
+
+										if valor == None:
+											self.tokens = "Error en la linea " + str(contador)+" ERROR: "+ l
+											#return activar el return para salir del programa cuando encuentre un error
+										else:
+											self.tokens = str(valor) + ". Linea: " + str(contador)
+									
+							elif identificarComentario(i) != True:
 
 								valor = self.obtenerToken(i, contador)
+								
+								inicio = i.find("(")
+								final = i.find(")")
+
+								if inicio != -1 and final != -1:
+									valor = None
 
 								if valor == None:
-									self.tokens = "Error en la linea " + str(contador)
+									self.tokens = "Error en la linea " + str(contador) + " ERROR: " + i
 									#return activar el return para salir del programa cuando encuentre un error
 								else:
 									self.tokens = str(valor) + ". Linea: " + str(contador)
+
 							else:
 								break;
 
+						
+						if cadena != None:
+							
+							inicio = cadena.find("(")
+							final = cadena.find(")")
+
+							if inicio != -1 and final != -1:
+								cadena = None
+
+							if cadena == None:
+								self.tokens = "Error en la linea " + str(contador) + " ERROR: " + cadena
+								#return activar el return para salir del programa cuando encuentre un error
+							else:
+								self.tokens = str(cadena) + ". Linea: " + str(contador)
+						
 						contador = contador + 1
+
 
 			except:
 				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
@@ -215,8 +299,11 @@ class lexer_eBlack():
 #print(uno)
 #print(dos)
 
-print(operadores.values())
-print(identificarReservada("si(&b-&a~~10)", "si"))
+"""
+eBlack = lexer_eBlack("prueba.eb")
+lista = ['\tescribe', '(', '"Cadena', 'de', 'caracteres"', ')\n']
+cadena, lista = eBlack.buscarCadena(lista)
+print(cadena, lista)
 """
 
 SapiLee("Inicio de lexer eBlack")
@@ -226,9 +313,11 @@ Resultado = eBlack.tokens
 
 for i in Resultado:
 	print(i)
-#	SapiLee(i)
+	SapiLee(i)
 
 SapiLee("Fin de lexer eBlack")
+
+"""
 #abrirArch_eBlack("Dictionary_eBlack.eb")
 
 
