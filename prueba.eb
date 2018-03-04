@@ -7,5 +7,5 @@ sinosi(5<&a) entonces {
 	escribe( "Cadena de caracteres" )
 }
 sino {
-	&variable ~ funcion nuevaFuncion ( &a , &b )
+	&variable ~ funcion &nuevaFuncion ( &a , &b )
 }

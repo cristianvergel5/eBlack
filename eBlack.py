@@ -10,7 +10,7 @@ tokens = ['ID', 'NUMERO', 'SUMA', 'RESTA', 'MULTIPLICACION', 'DIVISION', 'PARENT
 
 puntuacion = {'PUNTO':'.', 'COMA':',', 'PUNTO Y COMA':';', 'DOS PUNTOS': ':', 'PUNTOS SUSPENSIVOS':'...', 'CORCHETE IZQUIERDO':'[', 'CORCHETE DERECHO':']'}
 
-reservadas = ['itr', 'miq', 'si', 'sino', 'sinosi', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos', 'escriba',
+reservadas = ['itr', 'miq', 'si', 'sino', 'sinosi', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos',
 'funcion']
 
 def SapiLee(lectura):
@@ -213,6 +213,8 @@ class lexer_eBlack():
 												
 						lista = linea.split(" ")
 						#print(lista)
+
+						funcionEncontrada = 0
 						cadena, lista = self.buscarCadena(lista)
 
 						#print(cadena, lista)
@@ -305,6 +307,7 @@ lista = ['\tescribe', '(', '"Cadena', 'de', 'caracteres"', ')\n']
 cadena, lista = eBlack.buscarCadena(lista)
 print(cadena, lista)
 """
+
 
 SapiLee("Inicio de lexer eBlack")
 eBlack = lexer_eBlack("prueba.eb")
