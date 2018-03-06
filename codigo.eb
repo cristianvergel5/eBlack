@@ -1,10 +1,11 @@
-si (5.5>&a) entonces {
-	escribe ( "Cadena de caracteres" )
+si(5>&a) entonces {
+	&encontrar <~ "camilo"
 	&leer ~ "salida"
 	&edad ~ 5 * 2
+	escriba( "Cristian es caga" )
 }
 sinosi(5<&a) entonces {
-	escribe( "Cadena de caracteres" )
+	&a <~ "Cadena de caracteres"
 }
 sino {
 	&variable ~ funcion &nuevaFuncion ( &a , &b )

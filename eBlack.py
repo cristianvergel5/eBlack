@@ -1,8 +1,7 @@
-##import win32com.client as clwin
+import win32com.client as clwin
 import re
-import sys, os
+import sys, os, time
 from tkinter import *
-
 
 operadores = {'SUMA':'+', 'RESTA':'-', 'MULTIPLICACION':'*', 'DIVISION': '/', 'ASIGNACION': '~', 'MENOR QUE': '<',
 'MAYOR QUE':'>', 'IGUAL':'~~', 'MENOR IGUAL':'<~', 'MAYOR IGUAL':'>~', 'DIFERENTE':'|~', 'MODULO':'%'}
@@ -14,11 +13,49 @@ tokens = ['ID', 'NUMERO', 'SUMA', 'RESTA', 'MULTIPLICACION', 'DIVISION', 'PARENT
 puntuacion = {'PUNTO':'.', 'COMA':',', 'PUNTO Y COMA':';', 'DOS PUNTOS': ':', 'PUNTOS SUSPENSIVOS':'...', 'CORCHETE IZQUIERDO':'[', 'CORCHETE DERECHO':']'}
 
 reservadas = ['itr', 'miq', 'si', 'sino', 'sinosi', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos',
-'funcion']
+'funcion', 'terminar', 'escriba']
 
 def SapiLee(lectura):
 	habla = clwin.Dispatch("SAPI.SpVoice")
 	habla.Speak(lectura)
+
+def leerConSapi():
+	if(eBlack != None):
+		lista = eBlack.tokens
+
+		for i in lista:
+			SapiLee(i)
+
+def _print(string):
+    sys.stdout.write(string)
+    sys.stdout.flush()
+
+def imprimirBarraCarga(tiempo):
+
+	n=9619
+	tiempo = tiempo / 60
+	progreso = [" Progreso ", "0","%", "\n"]
+	barritas = 15
+
+	for i in range(barritas):
+		os.system("cls")
+		myChar=chr(n)
+		progreso.insert(0, myChar)
+
+		#Cambio de el porcentaje
+		indice = float(progreso[len(progreso) - 3])
+		indice = indice + (100/barritas)
+		progreso[len(progreso) - 3] = str(format(indice, '.1f'))
+
+		if i+1 == barritas:
+			progreso[len(progreso) - 3] = "100"
+		#Fin cambio porcentaje
+
+		for x in progreso:
+			_print(x)
+		time.sleep(tiempo)
+
+	print()
 
 def identificarReservada(identificar, reservada):
 	
@@ -143,10 +180,8 @@ class lexer_eBlack():
 	def obtenerToken(self, simbolo, contador):
 
 		simbolo = simbolo.lower()
-		simbolo = simbolo.rstrip("\n")
-		simbolo = simbolo.rstrip("\t")
-		simbolo = simbolo.replace("\n", "")
-
+		simbolo=simbolo.replace("\n", "")
+		simbolo=simbolo.replace("\t", "")
 		try:
 
 			if simbolo in reservadas:
@@ -217,7 +252,6 @@ class lexer_eBlack():
 						lista = linea.split(" ")
 						#print(lista)
 
-						funcionEncontrada = 0
 						cadena, lista = self.buscarCadena(lista)
 
 						#print(cadena, lista)
@@ -243,7 +277,7 @@ class lexer_eBlack():
 
 									if valor == None:
 										self.tokens = "Error en la linea " + str(contador) +" ERROR: "+ primer
-										#return activar el return para salir del programa cuando encuentre un error
+										return #activar el return para salir del programa cuando encuentre un error
 									else:
 
 										self.tokens = str(valor) + ". Linea: " + str(contador)
@@ -256,7 +290,7 @@ class lexer_eBlack():
 
 										if valor == None:
 											self.tokens = "Error en la linea " + str(contador)+" ERROR: "+ l
-											#return activar el return para salir del programa cuando encuentre un error
+											return #activar el return para salir del programa cuando encuentre un error
 										else:
 											self.tokens = str(valor) + ". Linea: " + str(contador)
 									
@@ -272,7 +306,7 @@ class lexer_eBlack():
 
 								if valor == None:
 									self.tokens = "Error en la linea " + str(contador) + " ERROR: " + i
-									#return activar el return para salir del programa cuando encuentre un error
+									return #activar el return para salir del programa cuando encuentre un error
 								else:
 									self.tokens = str(valor) + ". Linea: " + str(contador)
 
@@ -290,7 +324,7 @@ class lexer_eBlack():
 
 							if cadena == None:
 								self.tokens = "Error en la linea " + str(contador) + " ERROR: " + cadena
-								#return activar el return para salir del programa cuando encuentre un error
+								return #activar el return para salir del programa cuando encuentre un error
 							else:
 								self.tokens = str(cadena) + ". Linea: " + str(contador)
 						
@@ -298,7 +332,9 @@ class lexer_eBlack():
 
 
 			except:
-				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
+				print("Ha ocurrido un error en el proceso de lectura del programa eBlack, no tiene extension .eb")
+				SapiLee("Error! error! Archivo de texto erroneo.")
+				sys.exit(0)
 
 #uno, dos = identificarReservada("itr(", "itr")
 #print(uno)
@@ -310,15 +346,17 @@ lista = ['\tescribe', '(', '"Cadena', 'de', 'caracteres"', ')\n']
 cadena, lista = eBlack.buscarCadena(lista)
 print(cadena, lista)
 """
-
-
-#SapiLee("Inicio de lexer eBlack")
-eBlack = lexer_eBlack("prueba.eb")
+os.system("cls")
+eBlack = None
+SapiLee("Inicio de lexer eBlack")
+eBlack = lexer_eBlack("codigo.eb")
 eBlack.leerPrograma()
 Resultado = eBlack.tokens
+SapiLee("Espere profesor Daniel, estoy analizando el archivo...")
+imprimirBarraCarga(len(Resultado))
 
-for i in Resultado:
-	print(i)
+#for i in Resultado:
+#	print(i)
 	#SapiLee(i)
 
 #SapiLee("Fin de lexer eBlack")
@@ -333,7 +371,7 @@ class Example(Frame):
        
    def initUI(self):
      
-       self.master.title("lEXER")          
+       self.master.title("LEXER eBlack")          
        
        self.pack(fill=BOTH, expand=1)
 
@@ -366,19 +404,20 @@ class Example(Frame):
         
 def main():
 	root = Tk()
+	bit = root.iconbitmap('iconoE.ico')
 	root.config(bg="blue")
 	root.config(bd="20")
 	root.config(relief="groove")# tipo de borde
 	root.config(cursor="hand2")
 	buttonStart2=Button(root, text="Cerrar",command=root.quit)
 	buttonStart2.pack(side=RIGHT)
-	#buttonStart1=Button(root, text="Cerrar",command=SapiLee)
-	#buttonStart1.pack(side=RIGHT)
+	buttonStart1=Button(root, text="Voz",command=leerConSapi)
+	buttonStart1.pack(side=RIGHT)
 	#foto.pack()
 	ex = Example()
-	#root.geometry("650x350+300+300")
-	root.attributes("-fullscreen", True)
+	root.geometry("700x400+300+300")
+	#root.attributes("-fullscreen", True)
 	root.mainloop()
 
 if __name__ == '__main__':
-   main()  
+	main()  
