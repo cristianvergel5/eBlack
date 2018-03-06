@@ -1,3 +1,11 @@
-si entonces miq ~ a
-sino sinop
-+ clase
+si (5.5>&a) entonces {
+	escribe ( "Cadena de caracteres" )
+	&leer ~ "salida"
+	&edad ~ 5 * 2
+}
+sinosi(5<&a) entonces {
+	escribe( "Cadena de caracteres" )
+}
+sino {
+	&variable ~ funcion &nuevaFuncion ( &a , &b )
+}

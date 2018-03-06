@@ -1,36 +1,82 @@
 ##import win32com.client as clwin
 import re
-import sys
-import time
+import sys, os
+from tkinter import *
+
 
 operadores = {'SUMA':'+', 'RESTA':'-', 'MULTIPLICACION':'*', 'DIVISION': '/', 'ASIGNACION': '~', 'MENOR QUE': '<',
-'MAYOR QUE':'>', 'IGUAL':'~~', 'MENOR IGUAL':'<~', 'MAYOR IGUAL':'>~', 'DIFERENTE':'|~'}
+'MAYOR QUE':'>', 'IGUAL':'~~', 'MENOR IGUAL':'<~', 'MAYOR IGUAL':'>~', 'DIFERENTE':'|~', 'MODULO':'%'}
+
+operadoresBloque = {'LLAVE IZQUIERDA':'{', 'LLAVE DERECHA':'}', 'COMA':',', 'PARENTESIS IZQUIERDO':'(', 'PARENTESIS DERECHO':')'}
 
 tokens = ['ID', 'NUMERO', 'SUMA', 'RESTA', 'MULTIPLICACION', 'DIVISION', 'PARENTESISI', 'PARENTESISD']
 
-puntuacion = {'PUNTO':'.', 'COMA':',', 'PUNTO Y COMA':';', 'DOS PUNTOS': ':', 'PUNTOS SUSPENSIVOS':'...',
-'PARENTESIS IZQUIERDO':'(', 'PARENTESIS DERECHO':')', 'CORCHETE IZQUIERDO':'[', 'CORCHETE DERECHO':']', 'BARRA':'',
-'LLAVE IZQUIERDA':'{', 'LLAVE DERECHA':'}'}
+puntuacion = {'PUNTO':'.', 'COMA':',', 'PUNTO Y COMA':';', 'DOS PUNTOS': ':', 'PUNTOS SUSPENSIVOS':'...', 'CORCHETE IZQUIERDO':'[', 'CORCHETE DERECHO':']'}
 
-reservadas = ['itr', 'miq', 'si', 'sino', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos']
-"""
+reservadas = ['itr', 'miq', 'si', 'sino', 'sinosi', 'entonces', 'retorna', 'clase', 'prueba', 'ajuste', 'verdad', 'falso', 'casos',
+'funcion']
+
 def SapiLee(lectura):
 	habla = clwin.Dispatch("SAPI.SpVoice")
 	habla.Speak(lectura)
-"""
-def _print(string):
-    sys.stdout.write(string)
-    sys.stdout.flush()
 
+def identificarReservada(identificar, reservada):
+	
+	patron = re.compile("["+reservada+"]+\(.*\)")
+	patron2 = re.compile("["+reservada+"]+\(.*")
 
+	inicio = identificar.find("(") + 1
+	fin = identificar.find(")")
+	#print(inicio, " ", fin)
+
+	acumula = ""
+
+	if inicio != -1 and fin != -1 and inicio != fin:
+
+		for i in range(inicio, fin):
+			acumula = acumula + identificar[i]
+
+		acumula = acumula.replace("", " ")
+		acumula = acumula.replace("& ", "&")
+		acumula = acumula.replace("< ~", "<~")
+		acumula = acumula.replace("~ ~", "~~")
+		acumula = acumula.replace("> ~", ">~")
+		acumula = acumula.replace("| ~", "|~")
+
+		#print("ACUMULA RESULTADO 1: ", acumula)
+
+	elif inicio != -1 and fin == -1:
+
+		for i in range(inicio, len(identificar)):
+			acumula = acumula+identificar[i]
+		
+		acumula = acumula.replace("", " ")
+		acumula = acumula.replace("& ", "&")
+		acumula = acumula.replace("< ~", "<~")
+		acumula = acumula.replace("~ ~", "~~")
+		acumula = acumula.replace("> ~", ">~")
+		acumula = acumula.replace("| ~", "|~")
+
+		#print("ACUMULA RESULTADO 2: ", acumula)
+
+	if acumula == "":
+		acumula = None
+
+	if patron.search(identificar) != None:
+
+		return True, acumula
+	elif patron2.search(identificar) != None:
+		return True, acumula
+
+	return False, acumula
 
 def identificarID(identificar):
-	patron = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*')
+	patron = re.compile(r'[&][a-zA-Z_][a-zA-Z0-9_]*')
 
 	identificar = identificar.lower()
 	
 	if identificar not in operadores.values() and identificar not in reservadas and patron.search(identificar) != None:
-		return "[ID, "+identificar+"]"
+		return "[IDENTIFICADOR, "+identificar+" ]"
 
 	return False
 
@@ -42,29 +88,37 @@ def identificarComentario(identificar):
 		return True
 
 	return False
+
+def identificarString(identificar):
+	patron = re.compile(r'\".*\"')
+
+	if patron.search(identificar) != None:
+		return "[STRING, "+identificar+" ]"
+
+	return False
+
+def identificarNumero(identificar):
+
+	flotante = identificar
+	flotante = flotante.replace(",", "")
+	flotante = flotante.replace(".", "")
+
+	if identificar.isdigit() == True:
+		return "[ENTERO, "+identificar+" ]"
+	elif flotante.isdigit() == True:
+		return "[FLOTANTE, "+identificar+" ]"
+
+	return False
 	
 class lexer_eBlack():
 
-	def __init__(self, dictionary, filename):
-		self.__dictionary = dictionary
+	def __init__(self, filename):
 		self.__filename = filename
 		self.__tokens = []
 
 	@property
-	def dictionary(self):
-		return self.__dictionary
-
-	@dictionary.setter
-	def dictionary(self, dictionary):
-		self.__dictionary = dictionary
-
-	@dictionary.deleter
-	def dictionary(self):
-		self.__dictionary = None
-
-	@property
 	def filename(self):
-		return self.__dictionary
+		return self.__filename
 
 	@filename.setter
 	def filename(self, filename):
@@ -86,21 +140,27 @@ class lexer_eBlack():
 	def tokens(self):
 		self.__tokens = None
 
-	def obtenerToken(self, simbolo):
+	def obtenerToken(self, simbolo, contador):
 
 		simbolo = simbolo.lower()
 		simbolo = simbolo.rstrip("\n")
-		parecido = ""
-		tipo = ""
+		simbolo = simbolo.rstrip("\t")
+		simbolo = simbolo.replace("\n", "")
 
 		try:
 
 			if simbolo in reservadas:
-				return "["+"PALABRA RESERVADA, "+simbolo+"]"
+				return "["+"PALABRA RESERVADA, "+simbolo+" ]"
 			elif simbolo in operadores.values():
-				return "["+"OPERADOR, "+simbolo+"]"
+				return "["+"OPERADOR, "+simbolo+" ]"
+			elif simbolo in operadoresBloque.values():
+				return "["+"PUNTUADOR, "+simbolo+" ]"
 			elif identificarID(simbolo) != False:
 				return identificarID(simbolo)
+			elif identificarNumero(simbolo) != False:
+				return identificarNumero(simbolo)
+			elif identificarString(simbolo) != False:
+				return identificarString(simbolo)
 
 			return None
 
@@ -108,8 +168,40 @@ class lexer_eBlack():
 			print("Ha ocurrido un error")
 
 
+	def buscarCadena(self, lista):
+
+			contador = 0
+			inicio = -1
+			fin = -1
+			cadena = ""
+
+			for i in lista:
+				if i.find('"') != -1 or i.find("'") != -1:
+
+					if inicio == -1:
+						inicio = contador
+					else:
+						fin = contador
+
+				contador = contador + 1
+
+			if inicio != -1 and fin != -1:
+
+				for i in range(inicio, fin+1):
+					cadena = cadena + lista[i]
+				
+				contador = fin - inicio + 1
+
+				for i in range(1,contador+1):
+					
+					lista.pop(inicio)
+					
+			if cadena == "":
+				return None, lista
+
+			return "[STRING, "+cadena+"]", lista
+
 	def leerPrograma(self):
-		
 
 		if self.__filename != None:
 
@@ -121,31 +213,107 @@ class lexer_eBlack():
 				with open(self.__filename, "r") as archivo:
 
 					for linea in archivo:
-						
+												
 						lista = linea.split(" ")
+						#print(lista)
+
+						funcionEncontrada = 0
+						cadena, lista = self.buscarCadena(lista)
+
+						#print(cadena, lista)
 
 						for i in lista:
 
-							if identificarComentario(i) != True:
+							if i.find("(") != -1 and i.find("(") != 0:
 
-								valor = self.obtenerToken(i)
+								inicio = i.find("(")
+								fin = i.find(")") +1
+
+								acumulado = ""
+								for x in range(inicio, fin):
+									acumulado = acumulado + i[x]
+
+								acumulado = acumulado.replace("", " ")
+								acumulado = acumulado.replace("& ", "&")
+
+								primer = i[0: inicio]
+
+								if primer != " ":
+									valor = self.obtenerToken(primer, contador)
+
+									if valor == None:
+										self.tokens = "Error en la linea " + str(contador) +" ERROR: "+ primer
+										#return activar el return para salir del programa cuando encuentre un error
+									else:
+
+										self.tokens = str(valor) + ". Linea: " + str(contador)
+
+								lista2 = acumulado.split(" ")
+								
+								for l in lista2:
+									if l != '':
+										valor = self.obtenerToken(l, contador)
+
+										if valor == None:
+											self.tokens = "Error en la linea " + str(contador)+" ERROR: "+ l
+											#return activar el return para salir del programa cuando encuentre un error
+										else:
+											self.tokens = str(valor) + ". Linea: " + str(contador)
+									
+							elif identificarComentario(i) != True: #si no es un comemntario
+
+								valor = self.obtenerToken(i, contador)
+								
+								inicio = i.find("(")
+								final = i.find(")")
+
+								if inicio != -1 and final != -1:
+									valor = None
 
 								if valor == None:
-									self.tokens = "Error en la linea " + str(contador)
+									self.tokens = "Error en la linea " + str(contador) + " ERROR: " + i
 									#return activar el return para salir del programa cuando encuentre un error
 								else:
 									self.tokens = str(valor) + ". Linea: " + str(contador)
+
 							else:
 								break;
 
+						
+						if cadena != None:
+							
+							inicio = cadena.find("(")
+							final = cadena.find(")")
+
+							if inicio != -1 and final != -1:
+								cadena = None
+
+							if cadena == None:
+								self.tokens = "Error en la linea " + str(contador) + " ERROR: " + cadena
+								#return activar el return para salir del programa cuando encuentre un error
+							else:
+								self.tokens = str(cadena) + ". Linea: " + str(contador)
+						
 						contador = contador + 1
+
 
 			except:
 				print("Ha ocurrido un error en el proceso de lectura del programa eBlack")
 
+#uno, dos = identificarReservada("itr(", "itr")
+#print(uno)
+#print(dos)
+
+"""
+eBlack = lexer_eBlack("prueba.eb")
+lista = ['\tescribe', '(', '"Cadena', 'de', 'caracteres"', ')\n']
+cadena, lista = eBlack.buscarCadena(lista)
+print(cadena, lista)
+"""
+
 
 #SapiLee("Inicio de lexer eBlack")
-eBlack = lexer_eBlack("Dictionary_eBlack.eb", "prueba.eb")
+eBlack = lexer_eBlack("prueba.eb")
 eBlack.leerPrograma()
 Resultado = eBlack.tokens
 
@@ -154,41 +322,63 @@ for i in Resultado:
 	#SapiLee(i)
 
 #SapiLee("Fin de lexer eBlack")
-#abrirArch_eBlack("Dictionary_eBlack.eb")
 
+class Example(Frame):
+ 
+   def __init__(self):
+       super().__init__()
+        
+       self.initUI()
+       
+       
+   def initUI(self):
+     
+       self.master.title("lEXER")          
+       
+       self.pack(fill=BOTH, expand=1)
 
-def separarExpresion(linea, lista, n):
+       acts = eBlack.tokens
 
-	#print("INICIO: ", linea)
+       lb = Listbox(self)
+       lb.pack(fill=X)
+       #lb.pack(fill=Y)
+       lb.size()
+       for i in acts:
+           lb.insert(END, i)
+           
+       lb.bind("<<ListboxSelect>>", self.onSelect)    
+           
+       lb.pack(pady=70)
+       
 
-	#print("LISTA SUCESION N->", n)
-	for i in lista:
-		print(i)
-	
-	if "=" not in linea:
-		lista.append(linea)
+       self.var = StringVar()
+       self.label = Label(self, text=0, textvariable=self.var)        
+       self.label.pack()
+       
 
-	elif "=" in linea:
-		
-		palabra = linea[n:linea.index("=")]
-		n = linea.index("=")
-		#print("EXTRAIDA: ", palabra, " N ->", n)
-		lista.append(palabra)
+   def onSelect(self, val):
+     
+       sender = val.widget
+       idx = sender.curselection()
+       value = sender.get(idx)   
 
-		if "=" not in lista:
-			lista.append("=")
+       self.var.set(value)
+        
+def main():
+	root = Tk()
+	root.config(bg="blue")
+	root.config(bd="20")
+	root.config(relief="groove")# tipo de borde
+	root.config(cursor="hand2")
+	buttonStart2=Button(root, text="Cerrar",command=root.quit)
+	buttonStart2.pack(side=RIGHT)
+	#buttonStart1=Button(root, text="Cerrar",command=SapiLee)
+	#buttonStart1.pack(side=RIGHT)
+	#foto.pack()
+	ex = Example()
+	#root.geometry("650x350+300+300")
+	root.attributes("-fullscreen", True)
+	root.mainloop()
 
-		#print("SIGUIENTE SUCESION: ", linea[linea.index("=")+1:], "\n\n")
-		separarExpresion(linea[linea.index("=")+1:], lista, 0)
-	
-	return lista
-
-
-lista2 = eBlack.tokens
-n=9619
-for myChar in lista2:
-	myChar=chr(n)
-	_print(myChar)
-	time.sleep(1)
-
-	
+if __name__ == '__main__':
+   main()  
